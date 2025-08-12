@@ -104,3 +104,46 @@ This project requires credentials for several third-party services.
     The frontend application will be available at `http://localhost:3000`.
 
 You can now open `http://localhost:3000` in your browser to use the application.
+
+## Deployment
+
+This application is designed to be deployed as separate services for the frontend and backend. Our recommended hosting platform for this architecture is **Render**, as it provides excellent support for web services, databases, and cron jobs out of the box.
+
+### Recommended Platform: Render
+
+**Render** is a unified cloud platform that can build and run all your apps and websites with free TLS certificates, a global CDN, DDoS protection, private networks, and auto-deploys from Git.
+
+Here is a high-level guide to deploying this project on Render:
+
+1.  **Deploy the Database:**
+    -   Create a new **PostgreSQL** instance on Render.
+    -   Render will provide you with a connection URL. Use this for your `DATABASE_URL` environment variable in the backend service.
+
+2.  **Deploy the Backend:**
+    -   Create a new **Web Service** on Render and connect it to your Git repository.
+    -   Set the **Root Directory** to `backend`.
+    -   Set the **Build Command** to `npm install`.
+    -   Set the **Start Command** to `npm start`. (You may need to add a `start` script to `backend/package.json`, e.g., `"start": "node dist/index.js"`, and a `build` script, e.g., `"build": "tsc"`).
+    -   Add all the required environment variables from your `.env` file to the Render service's environment settings.
+
+3.  **Deploy the Frontend:**
+    -   Create another new **Web Service** on Render and connect it to the same repository.
+    -   Set the **Root Directory** to `frontend`.
+    -   Render will likely detect that it's a Next.js application and configure the build and start commands automatically. If not:
+        -   Set the **Build Command** to `npm install && npm run build`.
+        -   Set the **Start Command** to `npm start`.
+    -   Add the `NEXT_PUBLIC_*` environment variables to the Render service's environment settings.
+
+4.  **Deploy the Cron Job:**
+    -   Create a new **Cron Job** on Render.
+    -   Set the **Root Directory** to `backend`.
+    -   Set the **Command** to `node dist/jobs/reminders.js`. (This requires you to build the TypeScript to JavaScript first).
+    -   Set the **Schedule** (e.g., `0 * * * *` to run every hour).
+    -   Add the necessary environment variables for the cron job to run.
+
+### Alternative Platform: Vercel
+
+**Vercel** is an excellent platform, especially for the Next.js frontend.
+
+-   **Frontend:** Deploying the `frontend` directory to Vercel is seamless and will provide the best performance.
+-   **Backend:** You could deploy the backend separately on a platform like Render or adapt it to run on Vercel's Serverless Functions. The cron job would need to be migrated to Vercel Cron Jobs. This approach might require some refactoring of the backend code.
