@@ -1,7 +1,6 @@
-import { Router, Request } from 'express';
-import { google } from 'googleapis';
-import { ClerkExpressRequireAuth } from '@clerk/express';
-import pool from '../db/client';
+import { Router, Request, Response } from "express";
+import { google } from "googleapis";
+import pool from "../db/client";
 
 interface AuthenticatedRequest extends Request {
   auth?: {
@@ -18,27 +17,30 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 const scopes = [
-  'https://www.googleapis.com/auth/calendar.readonly',
-  'https://www.googleapis.com/auth/calendar.events'
+  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar.events",
 ];
 
 // Redirect to Google's consent screen
-router.get('/oauth/google', ClerkExpressRequireAuth(), (req: AuthenticatedRequest, res) => {
-  const { userId } = req.auth!;
-  const url = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: scopes,
-    state: userId, // Pass the userId in the state parameter
-  });
-  res.redirect(url);
-});
+router.get(
+  "/oauth/google",
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { userId } = req.auth!;
+    const url = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: scopes,
+      state: userId, // Pass the userId in the state parameter
+    });
+    res.redirect(url);
+  }
+);
 
 // Handle the callback from Google
-router.get('/oauth/google/callback', async (req, res) => {
+router.get("/oauth/google/callback", async (req: Request, res: Response) => {
   const { code, state: userId } = req.query;
 
   if (!code || !userId) {
-    return res.status(400).send('Missing code or state');
+    return res.status(400).send("Missing code or state");
   }
 
   try {
@@ -46,7 +48,7 @@ router.get('/oauth/google/callback', async (req, res) => {
     const { access_token, refresh_token, expiry_date } = tokens;
 
     if (!access_token) {
-        return res.status(400).send('Failed to retrieve access token');
+      return res.status(400).send("Failed to retrieve access token");
     }
 
     // Store the tokens in the database
@@ -57,15 +59,19 @@ router.get('/oauth/google/callback', async (req, res) => {
          access_token = EXCLUDED.access_token,
          refresh_token = COALESCE(EXCLUDED.refresh_token, user_tokens.refresh_token),
          expires_at = EXCLUDED.expires_at`,
-      [userId, access_token, refresh_token, expiry_date ? new Date(expiry_date) : null]
+      [
+        userId,
+        access_token,
+        refresh_token,
+        expiry_date ? new Date(expiry_date) : null,
+      ]
     );
 
     // Redirect user to their profile page or a success page
-    res.redirect('/profile'); // This should ideally be a frontend URL
-
+    res.redirect("/profile"); // This should ideally be a frontend URL
   } catch (err) {
-    console.error('Error getting tokens from Google:', err);
-    res.status(500).send('Internal server error');
+    console.error("Error getting tokens from Google:", err);
+    res.status(500).send("Internal server error");
   }
 });
 
