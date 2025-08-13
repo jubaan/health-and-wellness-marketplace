@@ -146,3 +146,14 @@ Notes
 - Framework: Vitest. Scripts: `npm test`.
 - Location: `src/lib/__tests__/authz.test.ts` with mocks for Clerk and Prisma, covering `requireAnyRole`, `isCompanyAdminFor`, and `isPractitionerOrDelegate` logic.
 - To run: install dev deps (`npm install`) and execute `npm test`.
+## Documentation
+- Architecture: `docs/ARCHITECTURE.md`
+- Roles & Permissions: `docs/ROLES_AND_PERMISSIONS.md`
+- Booking & Scheduling: `docs/BOOKING_AND_SCHEDULING.md`
+- Notifications: `docs/NOTIFICATIONS.md`
+- Search & Matching: `docs/SEARCH_MATCHING.md`
+- API Reference: `docs/API_REFERENCE.md`
+- Security & Compliance: `docs/SECURITY_COMPLIANCE.md`
+- Coding Standards: `docs/CODING_STANDARDS.md`
+- Roadmap: `docs/ROADMAP.md`
+- Contributing: `CONTRIBUTING.md`
