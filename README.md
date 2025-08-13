@@ -1,5 +1,8 @@
 # Health & Wellness Marketplace (MVP)
 
+[![CI](https://github.com/jubaan/health-and-wellness-marketplace/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/jubaan/health-and-wellness-marketplace/actions/workflows/ci.yml)
+[![Release](https://github.com/jubaan/health-and-wellness-marketplace/actions/workflows/release-please.yml/badge.svg?branch=development)](https://github.com/jubaan/health-and-wellness-marketplace/actions/workflows/release-please.yml)
+
 Fast MVP built with Next.js (App Router), Clerk, Prisma (PostgreSQL), and Tailwind. Includes RBAC, search, booking, Google Calendar, notifications, delegates, company assistants, and a clean UI with global context and breadcrumbs.
 
 ## Local Setup (Step‑by‑Step)
