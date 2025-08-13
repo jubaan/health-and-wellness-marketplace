@@ -73,7 +73,7 @@ router.put("/:userId", async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Get a practitioner's availability
+// Get a practitioner's availability and appointments
 router.get(
   "/:userId/availability",
   async (req: AuthenticatedRequest, res: Response) => {
@@ -114,15 +114,15 @@ router.get(
         ? new Date(endDate as string)
         : new Date(timeMin.getTime() + 60 * 24 * 60 * 60 * 1000); // 60 days
 
-      const freeBusyRes = await calendar.freebusy.query({
-        requestBody: {
-          timeMin: timeMin.toISOString(),
-          timeMax: timeMax.toISOString(),
-          items: [{ id: "primary" }], // Check the primary calendar
-        },
-      });
+          const freeBusyRes = await calendar.freebusy.query({
+            requestBody: {
+              timeMin: timeMin.toISOString(),
+              timeMax: timeMax.toISOString(),
+              items: [{ id: "primary" }],
+            },
+          });
 
-      const busySlots = freeBusyRes.data.calendars?.primary.busy;
+          const busySlots = freeBusyRes.data.calendars?.primary.busy;
 
       // 4. Calculate available slots (this is a simplified example)
       // A real implementation would be much more complex, considering working hours, buffer times, etc.
@@ -132,38 +132,38 @@ router.get(
       let currentSlot = new Date(timeMin);
       // Assuming working hours are 9am to 5pm in the server's timezone
       currentSlot.setHours(9, 0, 0, 0);
+            // Simplified slot calculation
+            const appointmentDuration = 60 * 60 * 1000;
+            let currentSlot = new Date(timeMin);
+            currentSlot.setHours(9, 0, 0, 0);
 
-      while (currentSlot < timeMax) {
-        // Check if it's a weekday and within working hours
-        const dayOfWeek = currentSlot.getDay();
-        const hour = currentSlot.getHours();
-        if (dayOfWeek > 0 && dayOfWeek < 6 && hour >= 9 && hour < 17) {
-          const slotEnd = new Date(currentSlot.getTime() + appointmentDuration);
-          let isBusy = false;
-          if (busySlots) {
-            for (const busy of busySlots) {
-              const busyStart = new Date(busy.start!);
-              const busyEnd = new Date(busy.end!);
-              if (currentSlot < busyEnd && slotEnd > busyStart) {
-                isBusy = true;
-                break;
-              }
+            while (currentSlot < timeMax) {
+                const dayOfWeek = currentSlot.getDay();
+                const hour = currentSlot.getHours();
+                if (dayOfWeek > 0 && dayOfWeek < 6 && hour >= 9 && hour < 17) {
+                    const slotEnd = new Date(currentSlot.getTime() + appointmentDuration);
+                    let isBusy = false;
+                    if (busySlots) {
+                        for (const busy of busySlots) {
+                            if (currentSlot < new Date(busy.end!) && slotEnd > new Date(busy.start!)) {
+                                isBusy = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!isBusy) {
+                        availableSlots.push({ start: new Date(currentSlot), end: slotEnd });
+                    }
+                }
+                currentSlot.setTime(currentSlot.getTime() + appointmentDuration);
+                if (currentSlot.getHours() >= 17) {
+                    currentSlot.setDate(currentSlot.getDate() + 1);
+                    currentSlot.setHours(9, 0, 0, 0);
+                }
             }
-          }
-          if (!isBusy) {
-            availableSlots.push({ start: new Date(currentSlot), end: slotEnd });
-          }
         }
-        // Move to the next slot
-        currentSlot.setTime(currentSlot.getTime() + appointmentDuration);
-        // If we cross into the next day, reset hours to the start of the working day
-        if (currentSlot.getHours() >= 17) {
-          currentSlot.setDate(currentSlot.getDate() + 1);
-          currentSlot.setHours(9, 0, 0, 0);
-        }
-      }
 
-      res.json(availableSlots);
+      res.json({ availableSlots, bookedAppointments });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
