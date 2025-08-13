@@ -1,0 +1,21 @@
+name: Release (Conventional Commits)
+
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release Please
+        uses: google-github-actions/release-please-action@v4
+        with:
+          release-type: node
+          package-name: health-and-wellness-marketplace
+          # Use development branch for releases (adjust if you cut releases from main)
+          target-branch: development
+          token: ${{ secrets.GITHUB_TOKEN }}
+

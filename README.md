@@ -157,3 +157,8 @@ Notes
 - Coding Standards: `docs/CODING_STANDARDS.md`
 - Roadmap: `docs/ROADMAP.md`
 - Contributing: `CONTRIBUTING.md`
+
+## CI & Releases
+- CI: GitHub Actions runs lint and tests on PRs and pushes (`.github/workflows/ci.yml`).
+- Releases: Conventional Commits drive automated releases via Release Please (`.github/workflows/release-please.yml`) on `development`.
+  - Use commit prefixes like `feat:`, `fix:`, `docs:`, `chore:`. Release PRs and tags are created automatically.
