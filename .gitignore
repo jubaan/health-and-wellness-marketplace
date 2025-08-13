@@ -1,0 +1,13 @@
+node_modules
+.next
+.vercel
+.env
+.env.local
+.env.development
+.env.production
+coverage
+dist
+build
+.DS_Store
+prisma/dev.db*
+prisma/*.sqlite*

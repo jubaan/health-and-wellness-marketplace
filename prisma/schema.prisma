@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Minimal M0 schema: extend in later milestones
+
+model UserProfile {
+  id           String   @id @default(cuid())
+  clerkUserId  String   @unique
+  email        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  patient      Patient?
+  practitioner Practitioner?
+}
+
+model Company {
+  id           String   @id @default(cuid())
+  name         String
+  clerkOrgId   String?  @unique
+  city         String?
+  lat          Float?   // consider PostGIS later
+  lng          Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships  PractitionerCompanyMembership[]
+}
+
+model Practitioner {
+  id             String   @id @default(cuid())
+  userProfileId  String   @unique
+  displayName    String
+  avatarUrl      String?
+  specialties    String[] // controlled taxonomy ids at M2
+  tags           String[] // free-form tags
+  city           String?
+  lat            Float?
+  lng            Float?
+  ratingAverage  Float?   // tier 3
+  slotMinutes    Int      @default(30)
+  bufferMinutes  Int      @default(10)
+  cancellationWindowHours Int @default(24)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  userProfile    UserProfile @relation(fields: [userProfileId], references: [id])
+  memberships    PractitionerCompanyMembership[]
+  availability   AvailabilityRule[]
+  oauth          OAuthConnection[]
+  delegates      PractitionerDelegate[]
+}
+
+model Patient {
+  id            String   @id @default(cuid())
+  userProfileId String   @unique
+  city          String?
+  lat           Float?
+  lng           Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+}
+
+enum OrgRole {
+  company_admin
+  company_support_team
+}
+
+model PractitionerCompanyMembership {
+  id             String   @id @default(cuid())
+  practitionerId String
+  companyId      String
+  role           OrgRole  @default(company_support_team)
+  canManageCalendar  Boolean @default(false)
+  canViewSchedules   Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  practitioner   Practitioner @relation(fields: [practitionerId], references: [id])
+  company        Company      @relation(fields: [companyId], references: [id])
+
+  @@unique([practitionerId, companyId])
+}
+
+model Appointment {
+  id             String   @id @default(cuid())
+  practitionerId String
+  patientId      String
+  companyId      String?
+  startsAt       DateTime
+  endsAt         DateTime
+  status         String   // scheduled, canceled, completed
+  source         String   // platform, google
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  practitioner   Practitioner @relation(fields: [practitionerId], references: [id])
+  patient        Patient      @relation(fields: [patientId], references: [id])
+  company        Company?     @relation(fields: [companyId], references: [id])
+}
+
+enum EnrollmentStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+enum EnrollmentInitiator {
+  practitioner
+  company
+}
+
+model EnrollmentRequest {
+  id             String              @id @default(cuid())
+  practitionerId String
+  companyId      String
+  status         EnrollmentStatus    @default(pending)
+  initiatedBy    EnrollmentInitiator
+  note           String?
+  // On approval, copy permissions into membership
+  canManageCalendar  Boolean @default(false)
+  canViewSchedules   Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  practitioner   Practitioner @relation(fields: [practitionerId], references: [id])
+  company        Company      @relation(fields: [companyId], references: [id])
+
+  @@unique([practitionerId, companyId, status])
+}
+
+model NotificationPreference {
+  id                 String   @id @default(cuid())
+  userProfileId      String   @unique
+  emailEnabled       Boolean  @default(true)
+  whatsappEnabled    Boolean  @default(true)
+  smsEnabled         Boolean  @default(false)
+  onBooking          Boolean  @default(true)
+  onReschedule       Boolean  @default(true)
+  onCancel           Boolean  @default(true)
+  onReminder         Boolean  @default(true)
+  onInvitation       Boolean  @default(true)
+  whatsappNumber     String?
+  phoneNumber        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  userProfile        UserProfile @relation(fields: [userProfileId], references: [id])
+}
+
+enum ReminderType {
+  H24
+  H1
+}
+
+model ReminderSent {
+  id             String        @id @default(cuid())
+  appointmentId  String
+  type           ReminderType
+  createdAt      DateTime      @default(now())
+
+  appointment    Appointment   @relation(fields: [appointmentId], references: [id])
+
+  @@unique([appointmentId, type])
+}
+
+model AvailabilityRule {
+  id              String   @id @default(cuid())
+  practitionerId  String
+  dayOfWeek       Int      // 0=Sun .. 6=Sat
+  startMinutes    Int      // minutes from 00:00
+  endMinutes      Int      // minutes from 00:00
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  practitioner Practitioner @relation(fields: [practitionerId], references: [id])
+  @@unique([practitionerId, dayOfWeek, startMinutes, endMinutes])
+}
+
+enum OAuthProvider {
+  google
+}
+
+model OAuthConnection {
+  id              String        @id @default(cuid())
+  practitionerId  String
+  provider        OAuthProvider
+  accessToken     String?
+  refreshToken    String?
+  expiresAt       DateTime?
+  connected       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  practitioner Practitioner @relation(fields: [practitionerId], references: [id])
+  @@unique([practitionerId, provider])
+}
+
+model PractitionerDelegate {
+  id              String   @id @default(cuid())
+  practitionerId  String
+  userProfileId   String
+  canManageProfile    Boolean @default(true)
+  canManageAvailability Boolean @default(true)
+  canManageAppointments Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  practitioner Practitioner @relation(fields: [practitionerId], references: [id])
+  userProfile  UserProfile  @relation(fields: [userProfileId], references: [id])
+
+  @@unique([practitionerId, userProfileId])
+}
